@@ -1,13 +1,12 @@
 {
-  "private": true,
   "displayName": "TotalConnect 2.0 Security",
-  "name": "homebridge-tc-2-0",
+  "name": "homebridge-tc-security-panel",
   "version": "1.0.0",
   "description": "Homebridge plugin for TotalConnect 2.0 Security Systems.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git://github.com/matthillman/homebridge-tc-2-0.git"
+    "url": "https://github.com/matthillman/homebridge-tc-2-0.git"
   },
   "bugs": {
     "url": "https://github.com/matthillman/homebridge-tc-2-0/issues"

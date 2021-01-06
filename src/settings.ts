@@ -6,4 +6,4 @@ export const PLATFORM_NAME = 'TotalConnectSecurityTwoDotZero';
 /**
  * This must match the name of your plugin as defined the package.json
  */
-export const PLUGIN_NAME = 'homebridge-tc-2-0';
+export const PLUGIN_NAME = 'homebridge-tc-security-panel';
