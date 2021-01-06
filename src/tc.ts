@@ -255,7 +255,7 @@ export class TCApi {
 
     }
 
-    async armSystem(state: HKArmState) {
+    async armSystem(state: HKArmState, wait: boolean = false) {
         if (!this.deviceID) {
             await this.getStatus();
         }
@@ -290,6 +290,10 @@ export class TCApi {
         const resultCode = jsonResponse[key].ResultCode._text as TCResultCode;
         if (![TCResultCode.success || TCResultCode.initiated].includes(resultCode)) {
             throw new TCError(resultCode);
+        }
+
+        if (!wait) {
+            return TCArmState.unknown;
         }
 
         let newState: TCArmState = TCArmState.unknown;

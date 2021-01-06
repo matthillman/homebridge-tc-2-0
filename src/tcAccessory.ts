@@ -9,10 +9,11 @@ import {
   AccessoryPlugin,
   AccessoryConfig,
 } from "homebridge";
-import { convertTCArmStateToHK, HKArmState, TCApi, TCError } from "./tc";
+import { convertTCArmStateToHK, HKArmState, TCApi, TCArmState, TCError } from "./tc";
 
 export class TotalConnectAccessory implements AccessoryPlugin {
   private readonly log: Logging;
+  private readonly api: API;
   private readonly name: string;
 
   private readonly securityService: Service;
@@ -22,8 +23,11 @@ export class TotalConnectAccessory implements AccessoryPlugin {
 
   private targetState: CharacteristicValue = -1;
 
+  private pollInterval: NodeJS.Timer | undefined;
+
   constructor(log: Logging, config: AccessoryConfig, api: API) {
     this.log = log;
+    this.api = api;
     this.name = config.name;
 
     this.tc = new TCApi(log, {
@@ -48,6 +52,17 @@ export class TotalConnectAccessory implements AccessoryPlugin {
       .getCharacteristic(api.hap.Characteristic.SecuritySystemTargetState)
       .on("get", this.getTargetState.bind(this))
       .on("set", this.setTargetState.bind(this));
+
+    setInterval(async () => {
+      let newState = await this.tc.getFullStatus();
+      this.log.info(`AUTO-POLLING state and got ${newState}`);
+      if (newState !== TCArmState.unknown) {
+        this.securityService.updateCharacteristic(
+          this.api.hap.Characteristic.SecuritySystemCurrentState,
+          convertTCArmStateToHK(newState)
+        );
+      }
+    }, 1000 * 60 * 5);
 
     this.log.debug(`TC Accessory init complete`);
   }
@@ -87,9 +102,25 @@ export class TotalConnectAccessory implements AccessoryPlugin {
       this.log.info("Set Characteristic TargetState -> ", value);
 
       const newState = await this.tc.armSystem(this.targetState);
-      this.log.info(`Set target state done [${newState}][${convertTCArmStateToHK(newState)}]`);
+      const newTarget = convertTCArmStateToHK(newState);
+      this.log.info(`Set target state done [${newState}][${newTarget}]`);
 
-      callback(null, convertTCArmStateToHK(newState));
+      if (this.targetState != newTarget) {
+        this.pollInterval = setInterval(async () => {
+          let newState = await this.tc.getFullStatus();
+          this.log.info(`POLLING state and got ${newState}`);
+          if (newState !== TCArmState.unknown && this.pollInterval) {
+            clearInterval(this.pollInterval);
+            this.pollInterval = undefined;
+            this.securityService.updateCharacteristic(
+              this.api.hap.Characteristic.SecuritySystemCurrentState,
+              convertTCArmStateToHK(newState)
+            );
+          }
+        }, 1000);
+      }
+
+      callback(null);
     } catch (err) {
       callback(err);
     }
