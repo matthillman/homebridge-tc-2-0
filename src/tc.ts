@@ -61,7 +61,8 @@ export enum TCArmState {
     disarmed = 10200,
     armedAway = 10201,
     armedStay = 10203,
-    armedNight = 10209
+    armedNight = 10209,
+    fault = 10213
 }
 
 export enum HKArmState {
@@ -69,6 +70,7 @@ export enum HKArmState {
     AWAY_ARM = 1,
     NIGHT_ARM = 2,
     DISARM = 3,
+    ALARM_TRIGGERED = 4,
 }
 
 export function convertTCArmStateToHK(state: TCArmState): HKArmState {
@@ -77,6 +79,7 @@ export function convertTCArmStateToHK(state: TCArmState): HKArmState {
         case TCArmState.armedAway: return HKArmState.AWAY_ARM;
         case TCArmState.armedStay: return HKArmState.STAY_ARM;
         case TCArmState.armedNight: return HKArmState.NIGHT_ARM;
+        case TCArmState.fault: return HKArmState.ALARM_TRIGGERED;
         default: return 0;
     }
 }
