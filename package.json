@@ -1,7 +1,7 @@
 {
   "displayName": "TotalConnect 2.0 Security",
   "name": "homebridge-tc-security-panel",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Homebridge plugin for TotalConnect 2.0 Security Systems.",
   "license": "Apache-2.0",
   "repository": {

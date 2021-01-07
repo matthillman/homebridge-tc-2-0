@@ -179,14 +179,20 @@ export class TCApi {
     }
 
     async getSessionID() {
-        const response = await got.post(`AuthenticateUserLogin`, {
-            prefixUrl: TCApi.URL_BASE,
-            form: {
-                ...this.config,
-                ApplicationID: this.ApplicationID,
-                ApplicationVersion: this.ApplicationVersion,
-            }
-        });
+        let response;
+        try {
+            response = await got.post(`AuthenticateUserLogin`, {
+                prefixUrl: TCApi.URL_BASE,
+                form: {
+                    ...this.config,
+                    ApplicationID: this.ApplicationID,
+                    ApplicationVersion: this.ApplicationVersion,
+                }
+            });
+        } catch (err) {
+            this.log.error(`[getSessionID] ${err}`);
+            return false
+        }
 
         const jsonResponse = convertXML(response.body) as SessionResponse;
         this.log.debug(`got session response`, jsonResponse);
@@ -199,7 +205,13 @@ export class TCApi {
     }
 
     async getStatus() {
-        const response = await this.API(`GetSessionDetails`);
+        let response;
+        try {
+            response = await this.API(`GetSessionDetails`);
+        } catch (err) {
+            this.log.error(`[getStatus] ${err}`);
+            return false
+        }
 
         const jsonResponse = convertXML(response.body) as any;
 
@@ -228,14 +240,20 @@ export class TCApi {
             await this.getStatus();
         }
 
-        const response = await this.API(`GetPanelMetaDataAndFullStatusByDeviceID`, {
-            form: {
-                DeviceID: this.deviceID,
-                LastSequenceNumber: 0,
-                LastUpdatedTimestampTicks: 0,
-                PartitionID: 1
-            }
-        });
+        let response;
+        try {
+            response = await this.API(`GetPanelMetaDataAndFullStatusByDeviceID`, {
+                form: {
+                    DeviceID: this.deviceID,
+                    LastSequenceNumber: 0,
+                    LastUpdatedTimestampTicks: 0,
+                    PartitionID: 1
+                }
+            });
+        } catch (err) {
+            this.log.error(`[getFullStatus] ${err}`);
+            return TCArmState.unknown
+        }
 
         const jsonResponse = convertXML(response.body) as any;
 
@@ -260,26 +278,32 @@ export class TCApi {
             await this.getStatus();
         }
 
-        const response = await (async () => {
-            if (state === HKArmState.DISARM) {
-                return await this.API(`DisarmSecuritySystem`, {
-                    form: {
-                        DeviceID: this.deviceID,
-                        LocationID: this.locationID,
-                        UserCode: '-1',
-                    }
-                });
-            } else {
-                return await this.API(`ArmSecuritySystem`, {
-                    form: {
-                        DeviceID: this.deviceID,
-                        LocationID: this.locationID,
-                        UserCode: '-1',
-                        ArmType: convertHKArmStateToTC(state),
-                    }
-                });
-            }
-        })();
+        let response;
+        try {
+            response = await (async () => {
+                if (state === HKArmState.DISARM) {
+                    return await this.API(`DisarmSecuritySystem`, {
+                        form: {
+                            DeviceID: this.deviceID,
+                            LocationID: this.locationID,
+                            UserCode: '-1',
+                        }
+                    });
+                } else {
+                    return await this.API(`ArmSecuritySystem`, {
+                        form: {
+                            DeviceID: this.deviceID,
+                            LocationID: this.locationID,
+                            UserCode: '-1',
+                            ArmType: convertHKArmStateToTC(state),
+                        }
+                    });
+                }
+            })();
+        } catch (err) {
+            this.log.error(`[armSystem] ${err}`);
+            return TCArmState.unknown;
+        }
 
         const jsonResponse = convertXML(response.body) as any;
 

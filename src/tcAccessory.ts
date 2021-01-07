@@ -57,9 +57,14 @@ export class TotalConnectAccessory implements AccessoryPlugin {
       let newState = await this.tc.getFullStatus();
       this.log.info(`AUTO-POLLING state and got ${newState}`);
       if (newState !== TCArmState.unknown) {
+        this.targetState = convertTCArmStateToHK(newState);
         this.securityService.updateCharacteristic(
           this.api.hap.Characteristic.SecuritySystemCurrentState,
-          convertTCArmStateToHK(newState)
+          this.targetState
+        );
+        this.securityService.updateCharacteristic(
+          this.api.hap.Characteristic.SecuritySystemTargetState,
+          this.targetState
         );
       }
     }, 1000 * 60 * 5);
@@ -120,7 +125,7 @@ export class TotalConnectAccessory implements AccessoryPlugin {
         }, 1000);
       }
 
-      callback(null);
+      callback(null, this.targetState);
     } catch (err) {
       callback(err);
     }
