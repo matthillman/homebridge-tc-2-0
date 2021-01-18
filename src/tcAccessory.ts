@@ -22,6 +22,7 @@ export class TotalConnectAccessory implements AccessoryPlugin {
   private tc: TCApi;
 
   private targetState: CharacteristicValue = -1;
+  private currentState: CharacteristicValue = -1;
 
   private pollInterval: NodeJS.Timer | undefined;
 
@@ -56,18 +57,15 @@ export class TotalConnectAccessory implements AccessoryPlugin {
     setInterval(async () => {
       let newState = await this.tc.getFullStatus();
       this.log.info(`AUTO-POLLING state and got ${newState}`);
-      if (newState !== TCArmState.unknown) {
-        this.targetState = convertTCArmStateToHK(newState);
+      const converted = convertTCArmStateToHK(newState);
+      if (newState !== TCArmState.unknown && this.currentState !== converted) {
+        this.currentState = converted;
         this.securityService.updateCharacteristic(
           this.api.hap.Characteristic.SecuritySystemCurrentState,
-          this.targetState
-        );
-        this.securityService.updateCharacteristic(
-          this.api.hap.Characteristic.SecuritySystemTargetState,
-          this.targetState
+          this.currentState
         );
       }
-    }, 1000 * 60 * 5);
+    }, 1000 * 60 * 3.5);
 
     this.log.debug(`TC Accessory init complete`);
   }
@@ -78,10 +76,13 @@ export class TotalConnectAccessory implements AccessoryPlugin {
 
   async getCurrentState(callback: CharacteristicSetCallback) {
     try {
-      const currentState = await this.tc.getFullStatus();
-      this.log.info("Get current state ->", currentState, convertTCArmStateToHK(currentState));
+      if (this.currentState == -1) {
+        this.currentState = convertTCArmStateToHK(await this.tc.getFullStatus());
+      }
 
-      callback(null, convertTCArmStateToHK(currentState));
+      this.log.info("Get current state ->", this.currentState);
+
+      callback(null, this.currentState);
     } catch (err) {
       if (err instanceof TCError) {
         callback(err);
@@ -103,9 +104,15 @@ export class TotalConnectAccessory implements AccessoryPlugin {
    */
   async setTargetState(value: CharacteristicValue, callback: CharacteristicSetCallback) {
     try {
-      this.targetState = value as HKArmState;
-      this.log.info("Set Characteristic TargetState -> ", value);
+      const newTargetState = value as HKArmState;
+      this.log.info("Set Characteristic TargetState -> ", this.targetState, newTargetState);
 
+      if (this.targetState === newTargetState) {
+        callback(null);
+        return;
+      }
+
+      this.targetState = newTargetState;
       const newState = await this.tc.armSystem(this.targetState);
       const newTarget = convertTCArmStateToHK(newState);
       this.log.info(`Set target state done [${newState}][${newTarget}]`);
@@ -122,10 +129,10 @@ export class TotalConnectAccessory implements AccessoryPlugin {
               convertTCArmStateToHK(newState)
             );
           }
-        }, 1000);
+        }, 3000);
       }
 
-      callback(null, this.targetState);
+      callback(null);
     } catch (err) {
       callback(err);
     }
