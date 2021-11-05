@@ -1,5 +1,5 @@
 import { Logger } from 'homebridge/lib/logger';
-import { HKArmState, TCApi } from './tc';
+import { HKArmState, TCApi } from './tc.v2';
 
 let api = new TCApi(Logger.withPrefix(`TC`), {
   username: 'mhillman4',
@@ -8,6 +8,7 @@ let api = new TCApi(Logger.withPrefix(`TC`), {
 
 const run = async () => {
   try {
+    // const state = await api.getStatus();
     const state = await api.armSystem(HKArmState.DISARM);
     console.log(`got status`, state);
   } catch (err) {
