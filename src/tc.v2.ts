@@ -259,13 +259,15 @@ export class TCApi {
             this.log.error(`[getStatus] ${err}`);
             return TCArmState.unknown;
         }
+        
+        // Retrive the global Arming State as opposed to the first Partition arming state.
+        const globalArmingState = response.body.PanelStatus.ArmingState;
+        this.log.info(`[getStatus] got status [${response.body.ArmingState}] ([${globalArmingState}])`);
+        
+        // Partions array isn't returned per the API spec so use the PartitionID from the Zones array instead
+        this.partitions = response.body.PanelStatus.Zones.map(p => p.PartitionID);
 
-        const firstPartitionState = response.body.PanelStatus.Partitions[0].ArmingState;
-        this.log.info(`[getStatus] got status [${response.body.ArmingState}] ([${firstPartitionState}])`);
-
-        this.partitions = response.body.PanelStatus.Partitions.map(p => p.PartitionID);
-
-        return firstPartitionState;
+        return globalArmingState;
     }
 
     async armSystem(state: HKArmState) {
