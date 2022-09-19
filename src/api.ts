@@ -2,8 +2,8 @@ import { Logger } from 'homebridge/lib/logger';
 import { HKArmState, TCApi } from './tc.v2';
 
 let api = new TCApi(Logger.withPrefix(`TC`), {
-  username: 'mhillman4',
-  password: 'Darter-frontier-overcoat-queazy0',
+  username: 'user',
+  password: 'password',
 });
 
 const run = async () => {
