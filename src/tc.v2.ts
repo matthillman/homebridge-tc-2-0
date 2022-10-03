@@ -147,18 +147,20 @@ interface TCPartitionDetails {
 
 interface TCPanelStatusInfo {
     Zones: any[];
-    SyncSecDeviceFlag: boolean;
-    LastUpdatedTimestampTicks: number;
-    ConfigurationSequenceNumber: number;
-    IsInACLoss: boolean;
+    PromptForImportSecuritySettings: boolean;
+    IsAlarmResponded: boolean;
     IsCoverTampered: boolean;
-    IsInLowBattery: boolean;
     Bell1SupervisionFailure: boolean;
     Bell2SupervisionFailure: boolean;
+    SyncSecDeviceFlag: boolean;
+    LastUpdatedTimestampTicks : number;
+    ConfigurationSequenceNumber	: number;
+    IsInACLoss: boolean;
+    IsInLowBattery: boolean;
     Partitions: TCPartitionDetails[];
 }
 
-interface TCPanelStatusResults {
+interface TCPanelMetadataAndStatusResults {
     PanelStatus: TCPanelStatusInfo;
     ArmingState: TCArmState;
 }
@@ -252,16 +254,16 @@ export class TCApi {
     }
 
     async getStatus() {
-        let response: Response<TCPanelStatusResults>;
+        let response: Response<TCPanelMetadataAndStatusResults>;
         try {
-            response = await this.apiGET<TCPanelStatusResults>(`${await this.getLocation()}/partitions/status`);
+            response = await this.apiGET<TCPanelMetadataAndStatusResults>(`${await this.getLocation()}/partitions/fullStatus`);
         } catch (err) {
             this.log.error(`[getStatus] ${err}`);
             return TCArmState.unknown;
         }
         
         // Retrive the global Arming State as opposed to the first Partition arming state.
-        const globalArmingState = response.body.PanelStatus.ArmingState;
+        const globalArmingState = response.body.ArmingState;
         this.log.info(`[getStatus] got status [${response.body.ArmingState}] ([${globalArmingState}])`);
         
         // Partions array isn't returned per the API spec so use the PartitionID from the Zones array instead
