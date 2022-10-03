@@ -9,7 +9,7 @@ import {
   AccessoryPlugin,
   AccessoryConfig,
 } from "homebridge";
-import { convertTCArmStateToHK, HKArmState, TCApi, TCArmState } from "./tc.v2";
+import { HKArmState, TCApi, TCArmState } from "./tc.v2";
 
 export class TotalConnectAccessory implements AccessoryPlugin {
   private readonly log: Logging;
@@ -55,7 +55,7 @@ export class TotalConnectAccessory implements AccessoryPlugin {
     setInterval(async () => {
       let newState = await this.tc.getStatus();
       this.log.info(`AUTO-POLLING state and got ${newState}`);
-      const converted = convertTCArmStateToHK(newState);
+      const converted = this.tc.convertTCArmStateToHK(newState);
       if (newState !== TCArmState.unknown && this.currentState !== converted) {
         this.currentState = converted;
         this.securityService.updateCharacteristic(
@@ -75,7 +75,7 @@ export class TotalConnectAccessory implements AccessoryPlugin {
   async getCurrentState(callback: CharacteristicSetCallback) {
     try {
       if (this.currentState == -1) {
-        this.currentState = convertTCArmStateToHK(await this.tc.getStatus());
+        this.currentState = this.tc.convertTCArmStateToHK(await this.tc.getStatus());
       }
 
       this.log.info("Get current state ->", this.currentState);
@@ -88,7 +88,7 @@ export class TotalConnectAccessory implements AccessoryPlugin {
 
   async getTargetState(callback: CharacteristicGetCallback) {
     if (this.targetState == -1) {
-      this.targetState = convertTCArmStateToHK(await this.tc.getStatus());
+      this.targetState = this.tc.convertTCArmStateToHK(await this.tc.getStatus());
     }
     this.log.info("Get Characteristic TargetState ->", this.targetState);
     callback(null, this.targetState);

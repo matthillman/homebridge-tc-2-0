@@ -58,29 +58,6 @@ export enum HKArmState {
     ALARM_TRIGGERED = 4,
 }
 
-export function convertTCArmStateToHK(state: TCArmState): HKArmState {
-    switch (state) {
-        case TCArmState.disarmed: return HKArmState.DISARM;
-        case TCArmState.armedAway: return HKArmState.AWAY_ARM;
-        case TCArmState.armedStay: return HKArmState.STAY_ARM;
-        case TCArmState.armedNight: return HKArmState.NIGHT_ARM;
-        case TCArmState.fault: return HKArmState.ALARM_TRIGGERED;
-        default: return 0;
-    }
-}
-
-async function getToken(config: TCConfig) {
-    const client = new ResourceOwnerPassword(oauthConfig);
-
-    try {
-        return await client.getToken(config, {json: true});
-    } catch (error: any) {
-        console.error(`Error getting access token: ${error.message}`);
-    }
-
-    return {token: {}};
-}
-
 interface TCPartitionCommentStateChange {
     PartitionId: number;
     Result: number;
@@ -183,7 +160,7 @@ export class TCApi {
                 afterResponse: [
                     async (response, retryWithMergedOptions) => {
                         if (response.statusCode === 401) {
-                            const newToken = await getToken(config);
+                            const newToken = await this.getToken(config);
                             const updatedOptions: Options = {
                                 headers: {
                                     authorization: `${newToken.token.token_type} ${newToken.token.access_token}`
@@ -201,6 +178,32 @@ export class TCApi {
             },
             mutableDefaults: true
         });
+    }
+
+    convertTCArmStateToHK(state: TCArmState): HKArmState {
+        switch (state) {
+            case TCArmState.disarmed: return HKArmState.DISARM;
+            case TCArmState.armedAway: return HKArmState.AWAY_ARM;
+            case TCArmState.armedStay: return HKArmState.STAY_ARM;
+            case TCArmState.armedNight: return HKArmState.NIGHT_ARM;
+            case TCArmState.fault: return HKArmState.ALARM_TRIGGERED;
+        }
+
+        this.log.error(`Unknown state received: ${state}`);
+        
+        return 0;
+    }
+
+    async getToken(config: TCConfig) {
+        const client = new ResourceOwnerPassword(oauthConfig);
+    
+        try {
+            return await client.getToken(config, {json: true});
+        } catch (error: any) {
+            this.log.error(`Error getting access token: ${error.message}`);
+        }
+    
+        return {token: {}};
     }
 
     async callApi<T>(endpoint: string = '', v1 = true, method: Method = 'GET', parameters: APIParameters = {}) {
