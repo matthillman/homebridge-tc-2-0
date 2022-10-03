@@ -81,16 +81,6 @@ async function getToken(config: TCConfig) {
     return {token: {}};
 }
 
-export function convertXML(body) {
-    try {
-        return xml2js(body, {compact: true, trim: true, nativeType: false, ignoreDoctype: true});
-    } catch (error: any) {
-        console.error(`Error converting XML`, body, error.message);
-    }
-
-    return null;
-}
-
 interface TCPartitionCommentStateChange {
     PartitionId: number;
     Result: number;
