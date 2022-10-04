@@ -43,11 +43,41 @@ export enum TCArmState {
     unknown = 0,
     disarmed = 10200,
     armedAway = 10201,
+    armedAwayBypass = 10202,
     armedStay = 10203,
+    armedStayBypass = 10204,
+    armedAwayInstant = 10205,
+    armedAwayInstantBypass = 10206,
+    // This code is reported for perimeter sensor devices (doors and windows). It is also reported for manually pushed buttons on the panel Medical and Police.
+    perimeterAlarming = 10207,
     armedNight = 10209,
-    fault = 10213,
-    systemArmed = 10226,
+    armedNightBypass = 10210,
+    disarmedBypass = 10211,
+    // This code is reported for smoke detectors. It is also reported for manually pushed buttons on the panel for Fire.
+    alarmingFireSmoke = 10212,
+    alarmingCarbonMonoxide = 10213,
+    // zone(s) faulted
+	disarmedNotReadyToArm = 10214,
+	armedStayNight = 10218,
+    // Reported by ProA7 panel.
+	armedStayNightBypass = 10219,
+    // Reported by ProA7 panel.
+	armedStayNightInstant = 10220,
+    // Reported by ProA7 panel.
+	armedStayNightInstantBypass = 10221,
+	armedCustomBypass = 10223,
+    // Suddenly reported for Lynx Touch 7000 in November 2021, which previously reported as 10203
+	armedStayLynxTouch = 10226,
     arming = 10307,
+    // Reported by ProA7 panel.
+    armedStayProA7 = 10230,
+    //  Reported by ProA7 panel.
+    armedStayBypassProA7 = 10231,
+    //  Reported by ProA7 panel.
+    armedStayInstantProA7 = 10232,
+    //  Reported by ProA7 panel.
+    armedStayInstantBypassProA7 = 10233,
+    disarming = 10308,
 }
 
 export enum HKArmState {
@@ -145,6 +175,7 @@ export class TCApi {
     private partitions: number[] = [];
     private polling?: Promise<boolean>;
 
+
     private log: Logging;
 
     constructor(log: Logging, config: TCConfig) {
@@ -181,28 +212,54 @@ export class TCApi {
     }
 
     convertTCArmStateToHK(state: TCArmState): HKArmState {
-        switch (state) {
-            case TCArmState.disarmed: return HKArmState.DISARM;
-            case TCArmState.armedAway: return HKArmState.AWAY_ARM;
-            case TCArmState.armedStay: return HKArmState.STAY_ARM;
-            case TCArmState.armedNight: return HKArmState.NIGHT_ARM;
-            case TCArmState.fault: return HKArmState.ALARM_TRIGGERED;
+        switch (true) {
+            case state == TCArmState.arming ||
+                state == TCArmState.disarmed ||
+                state == TCArmState.disarmedBypass ||
+                state == TCArmState.disarmedNotReadyToArm ||
+                state == TCArmState.disarming:
+                return HKArmState.DISARM;
+            case state == TCArmState.armedAway ||
+                state == TCArmState.armedAwayBypass ||
+                state == TCArmState.armedAwayInstant ||
+                state == TCArmState.armedAwayInstantBypass:
+                return HKArmState.AWAY_ARM;
+            case state == TCArmState.armedStay ||
+                state == TCArmState.armedStayBypass ||
+                state == TCArmState.armedCustomBypass ||
+                state == TCArmState.armedStayLynxTouch ||
+                state == TCArmState.armedStayProA7 ||
+                state == TCArmState.armedStayBypassProA7:
+                return HKArmState.STAY_ARM;
+            case state == TCArmState.armedNight ||
+                state == TCArmState.armedNightBypass ||
+                state == TCArmState.armedStayNight ||
+                state == TCArmState.armedStayNightBypass ||
+                state == TCArmState.armedStayNightInstant ||
+                state == TCArmState.armedStayNightInstantBypass ||
+                state == TCArmState.armedStayInstantProA7 ||
+                state == TCArmState.armedStayInstantBypassProA7:
+                return HKArmState.NIGHT_ARM;
+            case state == TCArmState.alarmingFireSmoke ||
+                state == TCArmState.alarmingCarbonMonoxide ||
+                state == TCArmState.perimeterAlarming:
+                return HKArmState.ALARM_TRIGGERED;
         }
 
         this.log.error(`Unknown state received: ${state}`);
-        
+
         return 0;
     }
 
     async getToken(config: TCConfig) {
         const client = new ResourceOwnerPassword(oauthConfig);
-    
+
         try {
             return await client.getToken(config, {json: true});
         } catch (error: any) {
             this.log.error(`Error getting access token: ${error.message}`);
         }
-    
+
         return {token: {}};
     }
 
@@ -254,11 +311,11 @@ export class TCApi {
             this.log.error(`[getStatus] ${err}`);
             return TCArmState.unknown;
         }
-        
+
         // Retrive the global Arming State as opposed to the first Partition arming state.
         const globalArmingState = response.body.ArmingState;
         this.log.info(`[getStatus] got status [${response.body.ArmingState}] ([${globalArmingState}])`);
-        
+
         // Partions array isn't returned per the API spec so use the PartitionID from the Zones array instead
         this.partitions = response.body.PanelStatus.Zones.map(p => p.PartitionID);
 
