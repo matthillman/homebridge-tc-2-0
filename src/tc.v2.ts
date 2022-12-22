@@ -142,8 +142,20 @@ interface TCPartitionDetails {
     AlarmTriggerTimeLocalized: Date;
 }
 
+interface TCZoneDetails {
+    ZoneID: number;
+    ZoneDescription: string;
+    ZoneStatus: number;
+    PartitionID: number;
+    CanBeBypassed: number;
+    AlarmTriggerTime: Date;
+    AlarmTriggerTimeLocalized: Date;
+    ZoneTypeID: number;
+    DeviceType: number;
+}
+
 interface TCPanelStatusInfo {
-    Zones: any[];
+    Zones: TCZoneDetails[];
     PromptForImportSecuritySettings: boolean;
     IsAlarmResponded: boolean;
     IsCoverTampered: boolean;
@@ -160,6 +172,11 @@ interface TCPanelStatusInfo {
 interface TCPanelMetadataAndStatusResults {
     PanelStatus: TCPanelStatusInfo;
     ArmingState: TCArmState;
+    IsSensorTrippedAlarm: boolean;
+    IsAlarmResponded: boolean;
+    IsCoverTampered: boolean;
+    Bell1SupervisionFailure: boolean;
+    Bell2SupervisionFailure: boolean;
 }
 
 interface APIParameters {
@@ -316,8 +333,7 @@ export class TCApi {
         const globalArmingState = response.body.ArmingState;
         this.log.info(`[getStatus] got status [${response.body.ArmingState}] ([${globalArmingState}])`);
 
-        // Partions array isn't returned per the API spec so use the PartitionID from the Zones array instead
-        this.partitions = response.body.PanelStatus.Zones.map(p => p.PartitionID);
+        this.partitions = response.body.PanelStatus.Partitions.map(p => p.PartitionID);
 
         return globalArmingState;
     }
